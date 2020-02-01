@@ -1,3 +1,5 @@
+#!/usr/local/bin/python3
+
 import requests
 import json
 import smtplib
@@ -19,7 +21,6 @@ def get_id(url):
 
 
 def get_data_from_apple(itunes_id):
-    print(itunes_id)
     url = ITUNES_LOOKUP_URL + itunes_id
     response = requests.get(url)
 
@@ -31,13 +32,14 @@ def get_data_from_apple(itunes_id):
 
 
 def send_email(html):
+    subject = "Subject: Daily Price Watch List\n"
     msg = MIMEText(html, 'html').as_string()
     smtpObj = smtplib.SMTP('smtp.gmail.com', 587)
     status, text = smtpObj.starttls()
     status, text = smtpObj.login(email, two_factor_auth)
     # Send email to me
     result = smtpObj.sendmail(
-        email, email, msg)
+        email, email, subject + msg)
     return
 
 
@@ -46,8 +48,8 @@ def create_html_email(items_info):
     for item in items_info:
         html = html + (
             f"<li>"
-            f"<b>Title: {item.get('title')}</b><br>"
-            f"Price: ${item.get('price')} {item.get('currency')}<br>"
+            f"Title: {item.get('title')}<br>"
+            f"<b>Price: ${item.get('price')} {item.get('currency')}</b><br>"
             f"URL: <a href=\"{item.get('url')}\">{item.get('url')}</a><br>"
             f"</li>")
 
