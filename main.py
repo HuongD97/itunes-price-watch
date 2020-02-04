@@ -7,9 +7,11 @@ import re
 from email.mime.text import MIMEText
 from secrets import email, two_factor_auth
 import pandas as pd
+from math import isnan
 
 NOT_FOUND = "NOT FOUND"
 ITUNES_LOOKUP_URL = "https://itunes.apple.com/lookup?id="
+ITUNES_WATCH_LIST_FILENAME = "itunes_watch_list.csv"
 
 
 def get_id(url):
@@ -57,17 +59,13 @@ def create_html_email(items_info):
     return html
 
 
-def get_item_urls():
-    df = pd.read_csv('itunes_watch_list.csv')
-    return df["Watch List"].values.tolist()
-
-
 def main():
-    item_urls = get_item_urls()
     all_items = []
 
-    for interested_item_url in item_urls:
-        item_itunes_id = get_id(interested_item_url)
+    df = pd.read_csv(ITUNES_WATCH_LIST_FILENAME)
+    for i in range(len(df.values)):
+        url = df.values[i][0]
+        item_itunes_id = get_id(url)
         item_information = get_data_from_apple(item_itunes_id)
         if item_information:
             relevant_item_info = dict(title=item_information.get('collectionName', NOT_FOUND),
@@ -77,8 +75,16 @@ def main():
                 url=item_information.get('collectionViewUrl', NOT_FOUND))
             all_items.append(relevant_item_info)
 
+            new_price = float(relevant_item_info.get('price'))
+            old_price = float(df.at[i, 'Latest Price']) if not isnan(
+                float(df.at[i, 'Latest Price'])) else None
+
+            if not old_price or new_price < old_price:
+                df.at[i, 'Latest Price'] = new_price
+
     html_email_content = create_html_email(all_items)
     send_email(str(html_email_content))
+    df.to_csv(ITUNES_WATCH_LIST_FILENAME, index=False)
 
 
 main()
